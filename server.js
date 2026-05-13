@@ -26,7 +26,7 @@ app.use(helmet());
 
 // Enable CORS
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173'],
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'https://library-frontend-beige-rho.vercel.app'],
     credentials: true
 }));
 
