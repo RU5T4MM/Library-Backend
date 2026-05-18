@@ -43,13 +43,18 @@ exports.getSeats = async (req, res) => {
 // @access  Private
 exports.requestSeat = async (req, res) => {
     try {
-        const { seatNumber, plan, amount, paymentScreenshot } = req.body;
+        let { seatNumber, plan, amount, paymentScreenshot } = req.body;
 
-        if (!seatNumber || !plan || !amount || !paymentScreenshot) {
+        if (plan === '3 Days Demo') {
+            amount = 0;
+            paymentScreenshot = 'demo_no_payment_required';
+        }
+
+        if (!seatNumber || !plan || amount === undefined || amount === null || !paymentScreenshot) {
             return res.status(400).json({ success: false, error: 'All fields are required' });
         }
 
-        if (req.user.bookingStatus === 'approved') {
+        if (req.user.bookingStatus === 'approved' && req.user.membershipExpiryDate && new Date(req.user.membershipExpiryDate) > new Date()) {
             return res.status(400).json({ success: false, error: 'You already have an active membership' });
         }
 

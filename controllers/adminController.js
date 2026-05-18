@@ -95,7 +95,9 @@ exports.updateRequest = async (req, res) => {
         if (status === 'approved') {
             await Seat.findByIdAndUpdate(payment.seatNumber, { status: 'booked' });
 
-            let days = payment.plan === '1 Month' ? 30 : 90;
+            let days = payment.plan === '1 Month' ? 30 : payment.plan === '3 Months' ? 90 : 0;
+            if (payment.plan === '3 Days Demo') days = 3;
+
             const startDate = new Date();
             const expiryDate = new Date();
             expiryDate.setDate(startDate.getDate() + days);
@@ -180,11 +182,13 @@ exports.freeSeat = async (req, res) => {
         }
 
         // Find user by seatNumber reference OR by seat.userId (whichever is set)
+        const orConditions = [{ seatNumber: seat._id }];
+        if (seat.userId) {
+            orConditions.push({ _id: seat.userId });
+        }
+        
         const user = await User.findOne({
-            $or: [
-                { seatNumber: seat._id },
-                { _id: seat.userId }
-            ]
+            $or: orConditions
         });
 
         if (user) {
