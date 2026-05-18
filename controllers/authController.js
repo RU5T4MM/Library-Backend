@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
 
 // In-memory OTP store: { email: { otp, expiresAt } }
 const otpStore = {};
@@ -177,8 +178,13 @@ exports.resetPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
-        user.password = newPassword;
-        await user.save();
+        
+        // Hash the new password manually and update to bypass full document validation
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        
+        await User.updateOne({ _id: user._id }, { password: hashedPassword });
+        
         delete otpStore[email];
         res.status(200).json({ success: true, message: 'Password reset successful' });
     } catch (err) {
