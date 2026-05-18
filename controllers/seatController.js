@@ -31,7 +31,7 @@ exports.initSeats = async (req, res) => {
 // @access  Public
 exports.getSeats = async (req, res) => {
     try {
-        const seats = await Seat.find().populate('userId', 'name');
+        const seats = await Seat.find().sort({ seatNumber: 1 }).populate('userId', 'name');
         res.status(200).json({ success: true, count: seats.length, data: seats });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
