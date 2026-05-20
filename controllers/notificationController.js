@@ -48,3 +48,31 @@ exports.markAllRead = async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+// @desc    Delete one notification
+// @route   DELETE /api/notifications/:id
+// @access  Private
+exports.deleteOne = async (req, res) => {
+    try {
+        await Notification.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Delete all notifications
+// @route   DELETE /api/notifications/delete-all
+// @access  Private
+exports.deleteAll = async (req, res) => {
+    try {
+        const query = req.user.role === 'admin'
+            ? { forAdmin: true }
+            : { userId: req.user.id, forAdmin: false };
+
+        await Notification.deleteMany(query);
+        res.status(200).json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
