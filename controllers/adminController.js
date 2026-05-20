@@ -272,3 +272,82 @@ exports.updateUser = async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+// @desc    Register a new admin
+// @route   POST /api/admin/register
+// @access  Admin only
+exports.registerAdmin = async (req, res) => {
+    try {
+        const { name, email, password, mobile } = req.body;
+
+        if (!name || !email || !password || !mobile) {
+            return res.status(400).json({ success: false, error: 'Please provide name, email, password and mobile' });
+        }
+
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(400).json({ success: false, error: 'Email already registered' });
+        }
+
+        const admin = await User.create({
+            name,
+            email,
+            password,
+            mobile,
+            address: 'Admin',
+            role: 'admin',
+            aadhaarPhoto: 'no-aadhaar.jpg'
+        });
+
+        res.status(201).json({
+            success: true,
+            message: `Admin "${admin.name}" registered successfully`,
+            data: {
+                id: admin._id,
+                name: admin.name,
+                email: admin.email,
+                mobile: admin.mobile,
+                role: admin.role,
+                createdAt: admin.createdAt
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Get all admins
+// @route   GET /api/admin/admins
+// @access  Admin only
+exports.getAdmins = async (req, res) => {
+    try {
+        const admins = await User.find({ role: 'admin' })
+            .select('-password')
+            .sort({ createdAt: -1 })
+            .lean();
+        res.status(200).json({ success: true, count: admins.length, data: admins });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Delete an admin
+// @route   DELETE /api/admin/admins/:id
+// @access  Admin only
+exports.deleteAdmin = async (req, res) => {
+    try {
+        if (req.params.id === req.user.id) {
+            return res.status(400).json({ success: false, error: 'You cannot delete your own account' });
+        }
+
+        const admin = await User.findOne({ _id: req.params.id, role: 'admin' });
+        if (!admin) {
+            return res.status(404).json({ success: false, error: 'Admin not found' });
+        }
+
+        await admin.deleteOne();
+        res.status(200).json({ success: true, message: `Admin "${admin.name}" deleted successfully` });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
