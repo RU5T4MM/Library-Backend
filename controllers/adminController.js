@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Seat = require('../models/Seat');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
+const Settings = require('../models/Settings');
 
 // @desc    Get dashboard stats
 // @route   GET /api/admin/stats
@@ -14,8 +15,16 @@ exports.getStats = async (req, res) => {
         const bookedSeats = await Seat.countDocuments({ status: 'booked' });
         const pendingRequests = await Payment.countDocuments({ status: 'pending' });
 
-        // Calculate total revenue from approved payments
-        const approvedPayments = await Payment.find({ status: 'approved' });
+        // Get revenue reset date setting
+        const revenueResetSetting = await Settings.findOne({ key: 'revenue_last_reset_date' });
+        const lastResetDate = revenueResetSetting ? new Date(revenueResetSetting.value) : null;
+
+        // Calculate total revenue from approved payments after reset date
+        const query = { status: 'approved' };
+        if (lastResetDate) {
+            query.createdAt = { $gt: lastResetDate };
+        }
+        const approvedPayments = await Payment.find(query);
         const totalRevenue = approvedPayments.reduce((acc, curr) => acc + curr.amount, 0);
 
         res.status(200).json({
@@ -26,8 +35,29 @@ exports.getStats = async (req, res) => {
                 availableSeats,
                 bookedSeats,
                 pendingRequests,
-                totalRevenue
+                totalRevenue,
+                revenueLastResetDate: lastResetDate
             }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// @desc    Reset total revenue to zero
+// @route   POST /api/admin/reset-revenue
+// @access  Admin
+exports.resetRevenue = async (req, res) => {
+    try {
+        await Settings.findOneAndUpdate(
+            { key: 'revenue_last_reset_date' },
+            { value: new Date() },
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Total revenue has been reset to zero successfully'
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });

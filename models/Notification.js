@@ -14,6 +14,14 @@ const notificationSchema = new mongoose.Schema({
     },
     title: { type: String, required: true },
     message: { type: String, required: true },
+    paymentScreenshot: { type: String, default: null },
+    paymentId: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'Payment',
+        default: null
+    },
+    seatNumber: { type: Number, default: null },
+    amount: { type: Number, default: null },
     isRead: { type: Boolean, default: false },
     forAdmin: { type: Boolean, default: false }
 }, { timestamps: true });

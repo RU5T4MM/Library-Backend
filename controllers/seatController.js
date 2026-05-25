@@ -86,12 +86,16 @@ exports.requestSeat = async (req, res) => {
 
         await User.findByIdAndUpdate(req.user.id, { bookingStatus: 'pending' });
 
-        // Notify admin about new booking request
+        // Notify admin about new booking request with payment proof screenshot
         await Notification.create({
             type: 'new_request',
             title: 'New Booking Request',
-            message: `${req.user.name} has submitted a booking request for Seat #${seat.seatNumber} (${plan} - ₹${amount}).`,
-            forAdmin: true
+            message: `${req.user.name} has submitted a booking request for Seat #${seat.seatNumber} (${plan} - ₹${amount}). Review the payment proof to approve.`,
+            forAdmin: true,
+            paymentScreenshot,
+            paymentId: payment._id,
+            seatNumber: seat.seatNumber,
+            amount
         });
 
         res.status(200).json({ success: true, data: payment, message: 'Request submitted successfully' });
