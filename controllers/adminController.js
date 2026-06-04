@@ -112,13 +112,17 @@ exports.getRequests = async (req, res) => {
 // @access  Admin
 exports.updateRequest = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, transactionDate } = req.body;
         const payment = await Payment.findById(req.params.id);
 
         if (!payment) {
             return res.status(404).json({ success: false, error: 'Payment request not found' });
         }
 
+        // Allow admin to adjust the transactionDate before approving/rejecting
+        if (transactionDate) {
+            payment.transactionDate = new Date(transactionDate);
+        }
         payment.status = status;
         await payment.save();
 
@@ -128,7 +132,8 @@ exports.updateRequest = async (req, res) => {
             let days = payment.plan === '1 Month' ? 30 : payment.plan === '3 Months' ? 90 : 0;
             if (payment.plan === '3 Days Demo') days = 3;
 
-            const startDate = new Date();
+            // Use payment.transactionDate if provided, otherwise use current date
+            const startDate = payment.transactionDate ? new Date(payment.transactionDate) : new Date();
             const expiryDate = new Date();
             expiryDate.setDate(startDate.getDate() + days);
 

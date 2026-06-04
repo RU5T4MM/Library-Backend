@@ -43,15 +43,24 @@ exports.getSeats = async (req, res) => {
 // @access  Private
 exports.requestSeat = async (req, res) => {
     try {
-        let { seatNumber, plan, amount, paymentScreenshot } = req.body;
+        let { seatNumber, plan, amount, paymentScreenshot, transactionDate, paymentMethod, paymentReference } = req.body;
 
         if (plan === '3 Days Demo') {
             amount = 0;
             paymentScreenshot = 'demo_no_payment_required';
+            paymentMethod = 'online';
         }
 
-        if (!seatNumber || !plan || amount === undefined || amount === null || !paymentScreenshot) {
-            return res.status(400).json({ success: false, error: 'All fields are required' });
+        // Allow cash payments: either paymentScreenshot (image) for online, or paymentMethod === 'cash' with optional reference
+        if (!seatNumber || !plan || amount === undefined || amount === null) {
+            return res.status(400).json({ success: false, error: 'Seat, plan and amount are required' });
+        }
+        if (paymentMethod === 'online' && !paymentScreenshot) {
+            return res.status(400).json({ success: false, error: 'Please provide payment screenshot for online payments' });
+        }
+        if (paymentMethod === 'cash' && !paymentReference) {
+            // cash payments should at least provide a reference or collector name
+            return res.status(400).json({ success: false, error: 'Please provide cash receipt reference or collector name' });
         }
 
         if (req.user.bookingStatus === 'approved' && req.user.membershipExpiryDate && new Date(req.user.membershipExpiryDate) > new Date()) {
@@ -71,13 +80,24 @@ exports.requestSeat = async (req, res) => {
         }
 
         // Create Payment FIRST — if this fails, nothing else gets updated
-        const payment = await Payment.create({
+        const paymentData = {
             userId: req.user.id,
             seatNumber: seat._id,
             amount,
             plan,
-            paymentScreenshot
-        });
+            paymentMethod: paymentMethod || 'online'
+        };
+        if (paymentMethod === 'online') {
+            paymentData.paymentScreenshot = paymentScreenshot;
+        } else if (paymentMethod === 'cash') {
+            paymentData.paymentReference = paymentReference;
+            paymentData.paymentScreenshot = `cash:${paymentReference || 'no-ref'}`;
+        }
+        if (transactionDate) {
+            paymentData.transactionDate = new Date(transactionDate);
+        }
+
+        const payment = await Payment.create(paymentData);
 
         // Only update Seat and User after Payment is successfully created
         seat.status = 'pending';

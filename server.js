@@ -28,6 +28,8 @@ app.use(helmet());
 app.use(cors({
     origin: [
         'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
         'http://localhost:5173',
         'https://library-frontend-beige-rho.vercel.app',
         'https://library-frontend-ashy-psi.vercel.app'
@@ -63,6 +65,17 @@ app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(err.statusCode || 500).json({
+        success: false,
+        error: err.message || 'Server Error'
+    });
+});
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

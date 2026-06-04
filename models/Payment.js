@@ -23,6 +23,15 @@ const paymentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    paymentMethod: {
+        type: String,
+        enum: ['online', 'cash'],
+        default: 'online'
+    },
+    paymentReference: {
+        type: String,
+        default: null
+    },
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],
